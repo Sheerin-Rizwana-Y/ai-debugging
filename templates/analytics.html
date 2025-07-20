@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Your Skill Analytics</h2>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Challenge</th>
+            <th>Score</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in scores %}
+        <tr>
+            <td>{{ s.challenge_name }}</td>
+            <td>{{ s.score }}</td>
+            <td>{{ s.timestamp.strftime('%Y-%m-%d') }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

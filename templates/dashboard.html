@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Welcome, {{ current_user.email }}</h2>
+
+<!-- Code Input -->
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Debugging Assistant</h5>
+    <textarea id="codeInput" class="form-control mb-2" rows="6" placeholder="Paste your code here..."></textarea>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-primary" onclick="sendCode('debug')">🛠 Debug</button>
+      <button class="btn btn-secondary" onclick="sendCode('explain')">📖 Explain</button>
+      <button class="btn btn-success" onclick="sendCode('complete')">🔚 Complete</button>
+      <button class="btn btn-info" onclick="sendCode('simulate')">🖨 Sample Output</button>
+      <button class="btn btn-dark" onclick="sendCode('run')">⚙️ Run Online</button>
+      <button class="btn btn-outline-secondary" onclick="clearResponse()">🧹 Clear Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- ML Prediction: Language + Error Type -->
+<div id="mlInfoBox" class="alert alert-info d-none mt-3"></div>
+
+<!-- Error Breakdown -->
+<div id="errorLinesBox" class="alert alert-danger d-none mt-3"></div>
+
+<!-- Explanation -->
+<div id="explanationBox" class="alert alert-warning d-none mt-3"></div>
+
+<!-- Fixed or Completed Code -->
+<div id="fixedCodeBox" class="alert alert-success d-none mt-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <strong>✅ Corrected Code</strong>
+    <button onclick="copyFixedCode()" class="btn btn-sm btn-outline-light">📋 Copy</button>
+  </div>
+  <pre id="fixedCodeBlock" class="mb-0"></pre>
+</div>
+
+<!-- Sample Output -->
+<div id="sampleOutputBox" class="alert alert-secondary d-none mt-3"></div>
+
+<!-- Chat History Toggle -->
+<button class="btn btn-outline-dark mb-3 mt-4" type="button" data-bs-toggle="collapse" data-bs-target="#chatHistory" aria-expanded="false" aria-controls="chatHistory">
+  🕘 Show Chat History
+</button>
+
+<div class="collapse" id="chatHistory">
+  <div class="card card-body">
+    <h5 class="mb-3">Your Chat History</h5>
+    <form method="POST" action="{{ url_for('chat.clear_history') }}">
+      <button type="submit" class="btn btn-danger btn-sm mb-3" onclick="return confirm('Are you sure you want to clear your chat history?')">
+        🗑 Clear History
+      </button>
+    </form>
+
+    {% if history %}
+      <ul class="list-group">
+        {% for chat in history %}
+          <li class="list-group-item">
+            <strong>You:</strong>
+            <pre>{{ chat.message }}</pre>
+            <strong>Assistant:</strong>
+            <pre>{{ chat.response }}</pre>
+            <small class="text-muted">{{ chat.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-warning">No chat history yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Script Logic -->
+<script>
+  async function sendCode(action) {
+    const code = document.getElementById("codeInput").value;
+    const mlBox = document.getElementById("mlInfoBox");
+    const errorLinesBox = document.getElementById("errorLinesBox");
+    const explanationBox = document.getElementById("explanationBox");
+    const fixedCodeBox = document.getElementById("fixedCodeBox");
+    const fixedCodeBlock = document.getElementById("fixedCodeBlock");
+    const sampleOutputBox = document.getElementById("sampleOutputBox");
+
+    [mlBox, errorLinesBox, explanationBox, fixedCodeBox, sampleOutputBox].forEach(box => box.classList.add("d-none"));
+
+    const endpointMap = {
+      debug: "/debug",
+      explain: "/explain",
+      complete: "/complete",
+      simulate: "/simulate",
+      run: "/run"
+    };
+
+    try {
+      const res = await fetch(endpointMap[action], {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code })
+      });
+
+      const data = await res.json();
+
+      // ML insights (if from /debug)
+      if (action === 'debug' && (data.language || data.error_type)) {
+        mlBox.classList.remove("d-none");
+        mlBox.innerHTML = `
+          <strong>🧠 ML Prediction:</strong><br>
+          <strong>Language:</strong> ${data.language}<br>
+          <strong>Error Type:</strong> ${data.error_type}
+        `;
+      }
+
+      // Error lines
+      if (action === 'debug' && data.error_lines) {
+        const errorLines = data.error_lines.map(e => `Line ${e.line}: ${e.type} — ${e.message}`).join('<br>');
+        errorLinesBox.classList.remove("d-none");
+        errorLinesBox.innerHTML = `<strong>❗ Error Lines:</strong><br>${errorLines}`;
+      }
+
+      // Explanation
+      if (data.explanation) {
+        explanationBox.classList.remove("d-none");
+        explanationBox.innerHTML = `<strong>🧠 Explanation:</strong><br>${data.explanation}`;
+      }
+
+      // Fixed or Completed Code
+      const resultCode = data.fixed_code || data.completed_code || "";
+      if (resultCode) {
+        fixedCodeBox.classList.remove("d-none");
+        fixedCodeBlock.textContent = resultCode;
+      }
+
+      // Sample Output
+      const output = data.simulated_output || data.output || "";
+      if ((action === 'simulate' || action === 'run') && output) {
+        sampleOutputBox.classList.remove("d-none");
+        sampleOutputBox.innerHTML = `<strong>🖨 Output:</strong><br>${output}`;
+      }
+
+    } catch (err) {
+      explanationBox.classList.remove("d-none");
+      explanationBox.innerHTML = `<strong>❌ Error:</strong><br>Server unreachable or failed to respond.`;
+    }
+  }
+
+  function copyFixedCode() {
+    const code = document.getElementById("fixedCodeBlock").textContent;
+    navigator.clipboard.writeText(code);
+  }
+
+  function clearResponse() {
+    ["mlInfoBox", "errorLinesBox", "explanationBox", "fixedCodeBox", "sampleOutputBox"].forEach(id => {
+      document.getElementById(id).classList.add("d-none");
+    });
+  }
+</script>
+{% endblock %}
