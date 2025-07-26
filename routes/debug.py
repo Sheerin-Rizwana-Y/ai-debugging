@@ -6,6 +6,7 @@ from extensions import db
 from models.chat import Chat
 from ml_model.detect import predict_language_and_error
 from llm.llm_chain import run_prompt_chain
+from models.feedback import Feedback
 
 bp = Blueprint("debug", __name__)
 
@@ -16,8 +17,6 @@ def extract_error_line(text: str) -> int | None:
     """
     matches = re.findall(r"(?:[Ll]ine[:\s]*|on line\s*|at line\s*)(\d+)", text)
     return int(matches[0]) if matches else None
-
-from models.feedback import Feedback
 
 @bp.route("/feedback", methods=["POST"])
 @login_required
@@ -39,7 +38,8 @@ def feedback():
     db.session.add(feedback)
     db.session.commit()
     return jsonify({"success": True})
-
+@bp.route("/debug", methods=["POST"])
+@login_required
 def debug():
     # 1. Get code from frontend
     code = request.get_json().get("code", "").strip()

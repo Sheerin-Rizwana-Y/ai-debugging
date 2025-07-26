@@ -1,6 +1,10 @@
 import json
 from llm.llm_client import query_llm
 from models.prompt_log_model import log_prompt_chain
+import logging
+import traceback
+
+logger=logging.getLogger(__name__)
 
 def run_prompt_chain(code: str, ml_result: dict, user_id=None) -> dict:
     context = {
@@ -8,6 +12,9 @@ def run_prompt_chain(code: str, ml_result: dict, user_id=None) -> dict:
         "language": ml_result.get("language", "Unknown"),
         "error_type": ml_result.get("error_type", "Unknown")
     }
+    
+    logger.info(f"Starting LLM prompt chain with context: {user_id}")
+    logger.info(f"Context: {context}")
 
     # 🧠 Step 1: Ask LLM to identify each error as a structured JSON object
     prompt_1 = (
@@ -16,7 +23,14 @@ def run_prompt_chain(code: str, ml_result: dict, user_id=None) -> dict:
         '{"line": <number>, "type": "<ErrorType>", "message": "<explanation>"}\n'
         "Return a JSON array of such objects. Do not include any extra commentary."
     )
-    diagnosis = query_llm(prompt_1)
+    
+    try:
+        logger.info("📤 Sending diagnosis prompt to LLM")
+        diagnosis = query_llm(prompt_1)
+    except Exception as e:
+        diagnosis = "❌ LLM Error: Diagnosis request failed"
+        logger.error("🚨 Diagnosis prompt failed")
+        logger.error(traceback.format_exc())
 
     # 🛡️ Try to parse structured output — fallback to empty list if invalid
     try:
@@ -26,25 +40,36 @@ def run_prompt_chain(code: str, ml_result: dict, user_id=None) -> dict:
     except Exception:
         parsed_diagnosis = []
         diagnosis = "❌ LLM failed to return valid JSON diagnosis."
+        logger.warning("⚠️ Diagnosis parsing failed")
 
-    # 🛠️ Step 2: Request corrected code
+    # 🛠️ Step 2: Fix Prompt
+    errors_json=json.dumps(parsed_diagnosis, indent=2)
     prompt_2 = (
-        f"The following errors were found in the code:\n{parsed_diagnosis}\n\n"
+        f"The following errors were found in the code:\n{errors_json}\n\n"
         "Rewrite the complete corrected code, applying all fixes. Return the code inside triple backticks, with no other text."
     )
-    fix = query_llm(prompt_2)
-    if not fix or "LLM Error" in fix:
-        fix = "❌ LLM failed to generate a corrected version."
+    try:
+        logger.info("📤 Sending fix prompt to LLM")
+        fix = query_llm(prompt_2)
+    except Exception as e:
+        fix = "❌ LLM Error: Code fix request failed"
+        logger.error("🚨 Fix prompt failed")
+        logger.error(traceback.format_exc())
 
+    
     # 💬 Step 3: Request explanation of the fix
     prompt_3 = (
         f"{fix}\nExplain how these changes resolved the listed errors."
     )
-    explanation = query_llm(prompt_3)
-    if not explanation or "LLM Error" in explanation:
-        explanation = "❌ LLM failed to explain the correction."
+    try:
+        logger.info("📤 Sending explanation prompt to LLM")
+        explanation = query_llm(prompt_3)
+    except Exception as e:
+        explanation = "❌ LLM Error: Explanation request failed"
+        logger.error("🚨 Explanation prompt failed")
+        logger.error(traceback.format_exc())
 
-    # 📦 Combine results
+    # 📦 Final response structure
     response_chain = {
         "diagnosis": diagnosis,
         "diagnosis_json": parsed_diagnosis,

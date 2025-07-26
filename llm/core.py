@@ -10,19 +10,17 @@ from llm.prompts import (
     get_nlp_prompt
 )
 
-load_dotenv()
+DEFAULT_MODEL = "gpt-3.5-turbo"
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-DEFAULT_MODEL = "gpt-4-turbo"
-
-print("🔑 Loaded API Key:", OPENROUTER_API_KEY[:10], "..." if OPENROUTER_API_KEY else "❌ Not found")
 
 def call_llm(prompt, model=DEFAULT_MODEL):
-    if not OPENROUTER_API_KEY:
+    load_dotenv()
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key:
         return "❌ Missing OpenRouter API key."
-
+    
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "HTTP-Referer": "http://localhost:5000",
         "X-Title": "Debug Assistant"
     }
@@ -39,7 +37,7 @@ def call_llm(prompt, model=DEFAULT_MODEL):
     except Exception as e:
         return f"❌ LLM error: {str(e)}"
 
-def debug_code(code, errors):
+def debug_code(code,errors):
     prompt = get_debug_prompt(code, errors)
     return call_llm(prompt)
 
