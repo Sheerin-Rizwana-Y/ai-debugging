@@ -24,7 +24,7 @@ ai-debugging/
  └── README.md                # Project overview
 
 
-## 🛠️ Setup
+##  Setup
 
 ```bash
 # Clone the repo
