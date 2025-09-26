@@ -1,16 +1,16 @@
-# 🧠 AI Debugging Toolkit
+# AI Debugging Toolkit
 
 A modular, backend-first debugging assistant powered by FastAPI and Python ML workflows. This toolkit is designed to help developers trace, analyze, and resolve runtime issues using intelligent suggestions and structured logs.
 
-## 🚀 Features
+##  Features
 
-- 🔍 **Trace Analyzer**: Parses stack traces and error logs to identify root causes.
-- 🧠 **ML-Powered Suggestions**: Uses trained models to recommend fixes based on historical error patterns.
-- 📦 **Modular Architecture**: Clean folder structure for scalable backend development.
-- 📄 **Log Ingestion Engine**: Accepts structured/unstructured logs via API and preprocesses them for analysis.
-- 🧪 **Test Harness**: Validate endpoints with sample logs and trace inputs.
+- **Trace Analyzer**: Parses stack traces and error logs to identify root causes.
+- **ML-Powered Suggestions**: Uses trained models to recommend fixes based on historical error patterns.
+- **Modular Architecture**: Clean folder structure for scalable backend development.
+- **Log Ingestion Engine**: Accepts structured/unstructured logs via API and preprocesses them for analysis.
+- **Test Harness**: Validate endpoints with sample logs and trace inputs.
 
-## 🧱 Project Structure
+## Project Structure
 ai-debugging/ 
 ├── app/ │  
  ├── main.py             # FastAPI entry point 
